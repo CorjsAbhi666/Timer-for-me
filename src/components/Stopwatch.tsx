@@ -7,7 +7,7 @@ import { Play, Pause, RotateCcw, Clock } from "lucide-react";
 const Stopwatch = () => {
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [hasNotified, setHasNotified] = useState(false);
+  const [lastNotifiedMultiple, setLastNotifiedMultiple] = useState(0);
   const [targetMinutes, setTargetMinutes] = useState(10);
   const [showDurationInput, setShowDurationInput] = useState(false);
   const [showTargetMessage, setShowTargetMessage] = useState(false);
@@ -23,10 +23,11 @@ const Stopwatch = () => {
         setTime((prevTime) => {
           const newTime = prevTime + 10;
           
-          // Check if target duration has been reached
-          if (newTime >= targetMilliseconds && !hasNotified) {
+          // Check if a new multiple of target duration has been reached
+          const currentMultiple = Math.floor(newTime / targetMilliseconds);
+          if (currentMultiple > lastNotifiedMultiple && currentMultiple > 0) {
             playBeep();
-            setHasNotified(true);
+            setLastNotifiedMultiple(currentMultiple);
             setShowTargetMessage(true);
             setTimeout(() => setShowTargetMessage(false), 5000);
           }
@@ -37,7 +38,7 @@ const Stopwatch = () => {
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, hasNotified, targetMilliseconds]);
+  }, [isRunning, lastNotifiedMultiple, targetMilliseconds]);
 
   const playBeep = () => {
     if (audioRef.current) {
@@ -64,7 +65,7 @@ const Stopwatch = () => {
   const handleReset = () => {
     setIsRunning(false);
     setTime(0);
-    setHasNotified(false);
+    setLastNotifiedMultiple(0);
     setShowTargetMessage(false);
   };
 
@@ -72,7 +73,7 @@ const Stopwatch = () => {
     const newMinutes = parseInt(value);
     if (!isNaN(newMinutes) && newMinutes > 0 && newMinutes <= 999) {
       setTargetMinutes(newMinutes);
-      setHasNotified(false);
+      setLastNotifiedMultiple(Math.floor(time / (newMinutes * 60000)));
     }
   };
 
