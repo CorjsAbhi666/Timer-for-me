@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTheme } from "next-themes";
-import { Play, Pause, RotateCcw, Moon, Sun, Clock } from "lucide-react";
+import { Play, Pause, RotateCcw, Clock } from "lucide-react";
 
 const Stopwatch = () => {
   const [time, setTime] = useState(0);
@@ -12,7 +10,7 @@ const Stopwatch = () => {
   const [hasNotified, setHasNotified] = useState(false);
   const [targetMinutes, setTargetMinutes] = useState(10);
   const [showDurationInput, setShowDurationInput] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const [showTargetMessage, setShowTargetMessage] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const targetMilliseconds = targetMinutes * 60000;
@@ -29,6 +27,8 @@ const Stopwatch = () => {
           if (newTime >= targetMilliseconds && !hasNotified) {
             playBeep();
             setHasNotified(true);
+            setShowTargetMessage(true);
+            setTimeout(() => setShowTargetMessage(false), 5000);
           }
           
           return newTime;
@@ -65,6 +65,7 @@ const Stopwatch = () => {
     setIsRunning(false);
     setTime(0);
     setHasNotified(false);
+    setShowTargetMessage(false);
   };
 
   const handleDurationChange = (value: string) => {
@@ -75,30 +76,14 @@ const Stopwatch = () => {
     }
   };
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
 
   const { minutes, seconds, centiseconds } = formatTime(time);
   const isAtTarget = time >= targetMilliseconds;
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      {/* Control buttons - top right */}
-      <div className="fixed top-4 right-4 flex gap-2 z-10">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={toggleTheme}
-          className="h-10 w-10"
-        >
-          {theme === "dark" ? (
-            <Sun className="h-5 w-5" />
-          ) : (
-            <Moon className="h-5 w-5" />
-          )}
-        </Button>
-        
+      {/* Control button - top right */}
+      <div className="fixed top-4 right-4 z-10">
         <Button
           variant="outline"
           size="icon"
@@ -109,12 +94,7 @@ const Stopwatch = () => {
         </Button>
       </div>
 
-      <Card 
-        className={`relative overflow-hidden backdrop-blur-sm border-2 transition-all duration-300 ${
-          isRunning ? "animate-pulse-glow border-primary" : "border-border"
-        } ${isAtTarget ? "border-accent" : ""}`}
-      >
-        <div className="p-8 md:p-16 space-y-8">
+      <div className="p-8 md:p-16 space-y-8 max-w-4xl w-full">
           {/* Duration Input */}
           {showDurationInput && (
             <div className="space-y-2 animate-fade-in">
@@ -149,7 +129,7 @@ const Stopwatch = () => {
               </span>
             </div>
             
-            {isAtTarget && (
+            {showTargetMessage && (
               <p className="text-accent font-semibold text-lg animate-pulse">
                 {targetMinutes} {targetMinutes === 1 ? 'minute' : 'minutes'} reached!
               </p>
@@ -192,7 +172,6 @@ const Stopwatch = () => {
             Target: {targetMinutes}:00 {targetMinutes === 1 ? 'minute' : 'minutes'}
           </div>
         </div>
-      </Card>
 
       {/* Audio element for beep sound */}
       <audio
