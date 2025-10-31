@@ -1,13 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useTheme } from "next-themes";
+import { Play, Pause, RotateCcw, Moon, Sun, Clock } from "lucide-react";
 
 const Stopwatch = () => {
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [hasNotified, setHasNotified] = useState(false);
+  const [targetMinutes, setTargetMinutes] = useState(10);
+  const [showDurationInput, setShowDurationInput] = useState(false);
+  const { theme, setTheme } = useTheme();
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  const targetMilliseconds = targetMinutes * 60000;
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -17,8 +25,8 @@ const Stopwatch = () => {
         setTime((prevTime) => {
           const newTime = prevTime + 10;
           
-          // Check if 10 minutes (600000ms) has been reached
-          if (newTime >= 600000 && !hasNotified) {
+          // Check if target duration has been reached
+          if (newTime >= targetMilliseconds && !hasNotified) {
             playBeep();
             setHasNotified(true);
           }
@@ -29,7 +37,7 @@ const Stopwatch = () => {
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, hasNotified]);
+  }, [isRunning, hasNotified, targetMilliseconds]);
 
   const playBeep = () => {
     if (audioRef.current) {
@@ -59,17 +67,72 @@ const Stopwatch = () => {
     setHasNotified(false);
   };
 
+  const handleDurationChange = (value: string) => {
+    const newMinutes = parseInt(value);
+    if (!isNaN(newMinutes) && newMinutes > 0 && newMinutes <= 999) {
+      setTargetMinutes(newMinutes);
+      setHasNotified(false);
+    }
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
   const { minutes, seconds, centiseconds } = formatTime(time);
-  const isAtTarget = time >= 600000;
+  const isAtTarget = time >= targetMilliseconds;
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
+      {/* Control buttons - top right */}
+      <div className="fixed top-4 right-4 flex gap-2 z-10">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={toggleTheme}
+          className="h-10 w-10"
+        >
+          {theme === "dark" ? (
+            <Sun className="h-5 w-5" />
+          ) : (
+            <Moon className="h-5 w-5" />
+          )}
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setShowDurationInput(!showDurationInput)}
+          className="h-10 w-10"
+        >
+          <Clock className="h-5 w-5" />
+        </Button>
+      </div>
+
       <Card 
         className={`relative overflow-hidden backdrop-blur-sm border-2 transition-all duration-300 ${
           isRunning ? "animate-pulse-glow border-primary" : "border-border"
         } ${isAtTarget ? "border-accent" : ""}`}
       >
         <div className="p-8 md:p-16 space-y-8">
+          {/* Duration Input */}
+          {showDurationInput && (
+            <div className="space-y-2 animate-fade-in">
+              <Label htmlFor="duration" className="text-sm font-medium">
+                Target Duration (minutes)
+              </Label>
+              <Input
+                id="duration"
+                type="number"
+                min="1"
+                max="999"
+                value={targetMinutes}
+                onChange={(e) => handleDurationChange(e.target.value)}
+                disabled={isRunning}
+                className="text-center text-lg font-semibold"
+              />
+            </div>
+          )}
           {/* Time Display */}
           <div className="text-center space-y-2">
             <div className="font-mono text-7xl md:text-9xl font-bold tracking-tight">
@@ -88,7 +151,7 @@ const Stopwatch = () => {
             
             {isAtTarget && (
               <p className="text-accent font-semibold text-lg animate-pulse">
-                10 minutes reached!
+                {targetMinutes} {targetMinutes === 1 ? 'minute' : 'minutes'} reached!
               </p>
             )}
           </div>
@@ -126,7 +189,7 @@ const Stopwatch = () => {
 
           {/* Target indicator */}
           <div className="text-center text-sm text-muted-foreground">
-            Target: 10:00 minutes
+            Target: {targetMinutes}:00 {targetMinutes === 1 ? 'minute' : 'minutes'}
           </div>
         </div>
       </Card>
