@@ -19,9 +19,9 @@ const Stopwatch = () => {
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
-    if (isRunning && startTime) {
+    if (isRunning && startTime !== null) {
       interval = setInterval(() => {
-        const currentTime = Date.now() - startTime + elapsedTime;
+        const currentTime = Date.now() - startTime;
         setElapsedTime(currentTime);
         
         // Check if a new multiple of target duration has been reached
@@ -36,7 +36,7 @@ const Stopwatch = () => {
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, startTime, lastNotifiedMultiple, targetMilliseconds, elapsedTime]);
+  }, [isRunning, startTime, lastNotifiedMultiple, targetMilliseconds]);
 
   const playBeep = () => {
     if (audioRef.current) {
@@ -58,9 +58,13 @@ const Stopwatch = () => {
 
   const handleStartPause = () => {
     if (!isRunning) {
-      setStartTime(Date.now());
+      // On start/resume, anchor startTime so elapsed = now - startTime
+      setStartTime(Date.now() - elapsedTime);
+      setIsRunning(true);
+    } else {
+      // Pause: keep elapsedTime as-is
+      setIsRunning(false);
     }
-    setIsRunning(!isRunning);
   };
 
   const handleReset = () => {
