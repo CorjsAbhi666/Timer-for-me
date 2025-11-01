@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Play, Pause, RotateCcw, Clock } from "lucide-react";
 
 const Stopwatch = () => {
-  const [time, setTime] = useState(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [lastNotifiedMultiple, setLastNotifiedMultiple] = useState(0);
   const [targetMinutes, setTargetMinutes] = useState(10);
@@ -18,27 +19,24 @@ const Stopwatch = () => {
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
-    if (isRunning) {
+    if (isRunning && startTime) {
       interval = setInterval(() => {
-        setTime((prevTime) => {
-          const newTime = prevTime + 10;
-          
-          // Check if a new multiple of target duration has been reached
-          const currentMultiple = Math.floor(newTime / targetMilliseconds);
-          if (currentMultiple > lastNotifiedMultiple && currentMultiple > 0) {
-            playBeep();
-            setLastNotifiedMultiple(currentMultiple);
-            setShowTargetMessage(true);
-            setTimeout(() => setShowTargetMessage(false), 5000);
-          }
-          
-          return newTime;
-        });
+        const currentTime = Date.now() - startTime + elapsedTime;
+        setElapsedTime(currentTime);
+        
+        // Check if a new multiple of target duration has been reached
+        const currentMultiple = Math.floor(currentTime / targetMilliseconds);
+        if (currentMultiple > lastNotifiedMultiple && currentMultiple > 0) {
+          playBeep();
+          setLastNotifiedMultiple(currentMultiple);
+          setShowTargetMessage(true);
+          setTimeout(() => setShowTargetMessage(false), 5000);
+        }
       }, 10);
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, lastNotifiedMultiple, targetMilliseconds]);
+  }, [isRunning, startTime, lastNotifiedMultiple, targetMilliseconds, elapsedTime]);
 
   const playBeep = () => {
     if (audioRef.current) {
@@ -59,12 +57,16 @@ const Stopwatch = () => {
   };
 
   const handleStartPause = () => {
+    if (!isRunning) {
+      setStartTime(Date.now());
+    }
     setIsRunning(!isRunning);
   };
 
   const handleReset = () => {
     setIsRunning(false);
-    setTime(0);
+    setStartTime(null);
+    setElapsedTime(0);
     setLastNotifiedMultiple(0);
     setShowTargetMessage(false);
   };
@@ -73,13 +75,13 @@ const Stopwatch = () => {
     const newMinutes = parseInt(value);
     if (!isNaN(newMinutes) && newMinutes > 0 && newMinutes <= 999) {
       setTargetMinutes(newMinutes);
-      setLastNotifiedMultiple(Math.floor(time / (newMinutes * 60000)));
+      setLastNotifiedMultiple(Math.floor(elapsedTime / (newMinutes * 60000)));
     }
   };
 
 
-  const { minutes, seconds, centiseconds } = formatTime(time);
-  const isAtTarget = time >= targetMilliseconds;
+  const { minutes, seconds, centiseconds } = formatTime(elapsedTime);
+  const isAtTarget = elapsedTime >= targetMilliseconds;
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
